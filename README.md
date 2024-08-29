@@ -75,7 +75,7 @@ The next thing I do in the Livox-SDK folder is create a new file which I will us
 sleep 60
 
 # Change directory to where the Livox sample script is located
-cd build/sample/lidar_lvx_file/
+cd /home/livox/Livox-SDK/build/sample/lidar_lvx_file/
 
 # Run the Livox sample program with the passed parameters
 ./lidar_lvx_sample "$@"
@@ -105,7 +105,7 @@ In the above the only thing you need to edit is the name and location of the har
 
 Explanation of the code:
 - sleep 60: Waits for 60 seconds before proceeding.
-- cd build/sample/lidar_lvx_file/: Changes directory to where the Livox sample script is located.
+- cd /home/livox/Livox-SDK/build/sample/lidar_lvx_file/: Changes directory to where the Livox sample script is located.
 - ./lidar_lvx_sample "$@": Runs the Livox sample script, allowing you to pass any parameters. The "$@" captures all arguments passed to the bash script.
 - lvx_file=$(ls *.lvx 2>/dev/null): Looks for the .lvx file in the directory. If no .lvx file is found, the script will exit with an error message.
 - mv "$lvx_file" /mnt/harddrive/: Moves the .lvx file to an external hard drive (assumed to be mounted at /mnt/harddrive/).
@@ -128,10 +128,10 @@ crontab -e
 and then add the following line to the end of the file:
 
 ```
-@reboot /home/livox/LivoxScheduledSample.sh -t 60
+@reboot /home/livox/LivoxScheduledSample -t 60 >> /home/livox/log.txt 2>&1
 ```
 
-in this case, the parameter '-t 60' refers to a 60 second scan, and you can change that to suit your needs. A list of parameters that you can tweak or change is in the Livox SDK documentation on Github.
+in this case, the parameter '-t 60' refers to a 60 second scan, and you can change that to suit your needs. A list of parameters that you can tweak or change is in the Livox SDK documentation on Github. '/home/livox/log.txt 2>&1' creates a log file that you can check for debugging purposes if the script does not appear to run.
 
 ## Important note
 
