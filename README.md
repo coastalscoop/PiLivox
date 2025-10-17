@@ -23,7 +23,11 @@ The overview below is how to take a totally clean RPI 5 and configure it to run 
   ```
   git clone https://github.com/Livox-SDK/Livox-SDK.git
   ```
+NOTE: The above repository has not been upodated for new compilers - if you receive errors instead clone the repository below:
+```
+git clone https://github.com/coastalscoop/Livox-SDK-24.04 Livox-SDK
 
+```
 At this point, we need to edit some of the files and it appears there is an omission in what is downloaded from Livox. Go to **Livox-SDK/sdk_core/src/base** and edit both the *thread_base.cpp* and *thread_base.h* files to include the text 
 ```
 #include <memory>
