@@ -155,3 +155,21 @@ crontab -e
 and put a # in front of the @reboot line. Then, next time the Pi boots up it will not automatically start this script.
 
 There are cleaner ways of handling this, such as making the shutdown line of the script conditional on a flag, but that's a matter of preference.
+
+## Troubleshooting
+
+# Unable to use wifi when livox connected
+This is a routing priority issue - rpi favours ethernet for internet over wifi, even when internet is not being supplied by the connected ethernet device. You can change the priorities of these connections as follows:
+```
+sudo nmcli connection modify "Ethernet connection 1" ipv4.route-metric 300
+sudo nmcli connection modify "[wifi network name]" ipv4.route-metric 200
+sudo nmcli connection up "Ethernet connection 1"
+sudo nmcli connection up "[wifi network name]"
+```
+
+then use
+
+```
+ip route
+```
+to verify the wifi has been given a lower number [higher priority]
