@@ -11,7 +11,14 @@ The overview below is how to take a totally clean RPI 5 and configure it to run 
   sudo apt-get install
   sudo apt install cmake
   ```
-
+- Enable charging of the RTC battery when mains are connected
+   ```
+    sudo nano /boot/firmware/config.txt
+   ```
+- Check the battery voltage (and periodically check to see that it is charging):
+   ```
+  vcgencmd pmic_read_adc BATT_V
+    ```
 ## Install the Livox Software Development Kit
   ```
   git clone https://github.com/Livox-SDK/Livox-SDK.git
