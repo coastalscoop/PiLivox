@@ -19,7 +19,7 @@ The overview below is how to take a totally clean RPI 5 and configure it to run 
    ```
   vcgencmd pmic_read_adc BATT_V
     ```
-## Install the Livox Software Development Kit
+## Download the Livox Software Development Kit
   ```
   git clone https://github.com/Livox-SDK/Livox-SDK.git
   ```
@@ -33,6 +33,102 @@ At this point, we need to edit some of the files and it appears there is an omis
 #include <memory>
 ```
 in the opening lines.
+
+## Edit the Livox Software Development Kit
+
+We will be using the standard lidar_lvx_sample script to collect most data, but it is not entirely fit for purpose at the moment and we want to make some changes to optimise it, and also to save on power.
+
+To save on power, we will turn the lidar unit off manually after the collection script. In our deployed remote settings, this means there is not massive power consumption from the lidar unit whilst we run our processing scripts or send data over the internet (the default is that the lidar stays powered up, even when not actively being called upon to collect data). To do this, navigate to:
+```
+/home/rpi/Livox-SDK/sample/lidar_lvx_file
+```
+Open up the main.cpp script in a text editor and look for the following section (around line 192):
+```
+if (type == kEventConnect) {
+    LidarConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Connect!!!\n", info->broadcast_code);
+  } else if (type == kEventDisconnect) {
+    LidarDisConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Disconnect!!!\n", info->broadcast_code);
+  } else if (type == kEventStateChange) {
+    LidarStateChange(info);
+    printf("[WARNING] Lidar sn: [%s] StateChange!!!\n", info->broadcast_code);
+  }
+```
+we want to add a simple line of code immediately after connection to make sure the lidar is powered up: 
+
+```
+LidarSetMode(info->handle, kLidarModeNormal, nullptr, nullptr);
+```
+
+The new section becomes:
+```
+  if (type == kEventConnect) {
+    LidarConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Connect!!!\n", info->broadcast_code);
+    LidarSetMode(info->handle, kLidarModeNormal, nullptr, nullptr);
+  } else if (type == kEventDisconnect) {
+    LidarDisConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Disconnect!!!\n", info->broadcast_code);
+  } else if (type == kEventStateChange) {
+    LidarStateChange(info);
+    printf("[WARNING] Lidar sn: [%s] StateChange!!!\n", info->broadcast_code);
+  }
+```
+
+and we also want to make sure the lidar powers down at the end. Look for the following section at the very end of main.cpp:
+```
+/** Stop the sampling of Livox LiDAR. */
+      LidarStopSampling(devices[i].handle, OnStopSampleCallback, nullptr);
+
+    }
+  }
+
+/** Uninitialize Livox-SDK. */
+  Uninit();
+}
+```
+
+and update it as follows:
+```
+/** Stop the sampling of Livox LiDAR. */
+      LidarStopSampling(devices[i].handle, OnStopSampleCallback, nullptr);
+
+      LidarSetMode(devices[i].handle,kLidarModePowerSaving, nullptr, nullptr);
+      printf("Set to power saving mode");
+    }
+  }
+
+/** Uninitialize Livox-SDK. */
+  Uninit();
+}
+```
+
+This is also the point whereby we could edit the code to work in repetitive (line scan) mode through the addition of the following text right after our power up script above:
+```
+   // Set the scan pattern to kRepetitiveScanPattern (1) when connecting
+    LidarSetScanPattern(handle, kRepetitiveScanPattern, nullptr, nullptr);
+```
+as follows:
+
+```
+  if (type == kEventConnect) {
+    LidarConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Connect!!!\n", info->broadcast_code);
+    LidarSetMode(info->handle, kLidarModeNormal, nullptr, nullptr);
+    // Set the scan pattern to kRepetitiveScanPattern (1) when connecting
+    LidarSetScanPattern(handle, kRepetitiveScanPattern, nullptr, nullptr);
+  } else if (type == kEventDisconnect) {
+    LidarDisConnect(info);
+    printf("[WARNING] Lidar sn: [%s] Disconnect!!!\n", info->broadcast_code);
+  } else if (type == kEventStateChange) {
+    LidarStateChange(info);
+    printf("[WARNING] Lidar sn: [%s] StateChange!!!\n", info->broadcast_code);
+  }
+```
+
+## Compile the code
+
 
 Now run the compilation and install code:
 ```
@@ -48,7 +144,10 @@ Now provide power to the Livox unit, and connect it to the Rasberry Pi using a C
 
 The Livox units typically come with an IP address of 192.168.1.1XX (where XX stands for the last two numbers in the serial number). In order to communicate with the Livox, you need to set the Raspberry Pi's IP address to be on the same subnet. To do this, you can click on **Network Connections** in the top right corner, go to **Advanced Options**, and then click **Edit Connections**. Double click on **Wired Connection** and on the **IPv4 Settings** tab change the **Method** to *Static* and add a new connection, making the address **192.168.1.50**, the Netmask **24**, and the Gateway **192.168.1.0**.
 
+If, however, you need to receive internet and livox data over ethernet then instead keep IPv4 settings as automatic, and manually add a new static IP address. This has currently been hard-coded into the startUp.sh script, so that this is set every time the rpi is powered on. 
+
 Save these changes and close.
+## Run the Livox
 
 Open up a command terminal and navigate back to the livox sample folder:
 
@@ -74,6 +173,26 @@ LocalIp and DeviceIp are not in same subnet
 that is a common error and just means that the IP address is not yet configured properly so revisit that step and ensure both the RPI and the Livox have IP addresses on the same subnet.
 
 Once that code runs successfuly, it will store a .lvx file in the current directory. The lvx files contain the scan data and the associated timestamps. 
+
+## Connection to AWS
+A connection to Amazon Web Service is required in order to upload the data:
+```
+sudo apt install s3cmd
+S3cmd --configure
+```
+Access key:  
+
+Secret Access key:  
+
+Encryption password [ignore]
+
+Path to GPG [ignore]
+
+Yes to HTTPS
+
+Test: yes
+
+Save: yes
 
 ## Automating the process
 
